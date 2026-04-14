@@ -1,15 +1,14 @@
-//Utilizei IA para corre��o, compara��o e deixar claro os conceitos para o meu entedimento
-
+// Usei IA para tirar dúvidas e organizar a estrutura dos padrões
 using System;
 
+// --- CONFIGURAÇÕES DO SISTEMA (SINGLETON) ---
 class DadosSistema
 {
     public string nomeApp = "Notificador Escolar";
-    public string urlServidor = "smtp.provedor.com";
     public int limiteEnvio = 5;
+    public int enviosRealizados = 0;
 
     private static DadosSistema unico;
-
     private DadosSistema() { }
 
     public static DadosSistema ObterInstancia()
@@ -22,16 +21,18 @@ class DadosSistema
     }
 }
 
+// Interface padrão para qualquer tipo de envio
 interface IMensagem
 {
     void Disparar(string conteudo);
 }
 
+// --- CLASSES DE ENVIO DO SISTEMA ---
 class EnvioEmail : IMensagem
 {
     public void Disparar(string conteudo)
     {
-        Console.WriteLine("Via E-mail: " + conteudo);
+        Console.WriteLine("-> Saída via E-mail: " + conteudo);
     }
 }
 
@@ -39,54 +40,116 @@ class EnvioSMS : IMensagem
 {
     public void Disparar(string conteudo)
     {
-        Console.WriteLine("Via SMS: " + conteudo);
+        Console.WriteLine("-> Saída via SMS: " + conteudo);
     }
 }
 
-class EnvioPush : IMensagem
+// --- INTEGRAÇÃO COM WHATSAPP (ADAPTADOR) ---
+
+class WhatsAppSDK
 {
+    public void enviarMensagemZap(string txt)
+    {
+        Console.WriteLine("-> Saída via WhatsApp (SDK Externo): " + txt);
+    }
+}
+
+class AdaptadorWhatsApp : IMensagem
+{
+    private WhatsAppSDK _sdk;
+    public AdaptadorWhatsApp(WhatsAppSDK sdk)
+    {
+        _sdk = sdk;
+    }
+
     public void Disparar(string conteudo)
     {
-        Console.WriteLine("Via Push: " + conteudo);
+        _sdk.enviarMensagemZap(conteudo);
     }
 }
 
+// --- SEGURANÇA E CONTROLE (PROXY) ---
+class MensagemProxy : IMensagem
+{
+    private IMensagem _objetoReal;
+    private DadosSistema _config;
+
+    public MensagemProxy(IMensagem objetoReal)
+    {
+        _objetoReal = objetoReal;
+        _config = DadosSistema.ObterInstancia();
+    }
+
+    public void Disparar(string conteudo)
+    {
+        if (_config.enviosRealizados < _config.limiteEnvio)
+        {
+            _objetoReal.Disparar(conteudo);
+            _config.enviosRealizados++;
+            Console.WriteLine("[LOG] Envios realizados agora: " + _config.enviosRealizados + "/" + _config.limiteEnvio);
+        }
+        else
+        {
+            Console.WriteLine("[ERRO] Bloqueio do Proxy: Limite de envios excedido!");
+        }
+    }
+}
+
+// --- GERADOR DE AVISOS (FACTORY) ---
 class CriadorAviso
 {
     public static IMensagem Gerar(string opcao)
     {
-        if (opcao == "1") return new EnvioEmail();
-        if (opcao == "2") return new EnvioSMS();
-        if (opcao == "3") return new EnvioPush();
+        IMensagem servico = null;
+
+        if (opcao == "1") servico = new EnvioEmail();
+        if (opcao == "2") servico = new EnvioSMS();
+        if (opcao == "3") servico = new AdaptadorWhatsApp(new WhatsAppSDK());
+
+        if (servico != null)
+        {
+            return new MensagemProxy(servico);
+        }
         return null;
     }
 }
 
+// --- PROGRAMA PRINCIPAL ---
 class Program
 {
     static void Main()
     {
-        DadosSistema info = DadosSistema.ObterInstancia();
-        Console.WriteLine("Sistema: " + info.nomeApp);
+        DadosSistema config = DadosSistema.ObterInstancia();
+        Console.WriteLine("=== " + config.nomeApp + " ===");
+        Console.WriteLine("Limite configurado: " + config.limiteEnvio + " envios.\n");
 
-        IMensagem msg = CriadorAviso.Gerar("1");
-
-        if (msg != null)
+        // Testando Email (Opção 1)
+        IMensagem m1 = CriadorAviso.Gerar("1");
+        if (m1 != null)
         {
-            msg.Disparar("Mensagem de teste do meu exercicio.");
+            m1.Disparar("Alerta de reunião de pais");
         }
 
-        Console.WriteLine("\n--- Status dos Testes ---");
-
-        DadosSistema info2 = DadosSistema.ObterInstancia();
-        if (info == info2)
+        // Testando SMS (Opção 2)
+        IMensagem m2 = CriadorAviso.Gerar("2");
+        if (m2 != null)
         {
-            Console.WriteLine("Singleton OK: Mesma instancia encontrada.");
+            m2.Disparar("Sua nota foi postada");
         }
 
-        if (msg is EnvioEmail)
+        // Testando WhatsApp Adaptado (Opção 3)
+        IMensagem m3 = CriadorAviso.Gerar("3");
+        if (m3 != null)
         {
-            Console.WriteLine("Factory OK: Objeto de Email criado.");
+            m3.Disparar("Boleto disponível para pagamento");
+
+            // Testando o limite do Proxy (Forçando mais envios)
+            Console.WriteLine("\n--- Testando limite do Proxy ---");
+            m3.Disparar("Teste limite 4");
+            m3.Disparar("Teste limite 5");
+            m3.Disparar("Teste limite 6 (Deve bloquear)");
         }
+
+        Console.WriteLine("\nFim do programa.");
     }
 }
