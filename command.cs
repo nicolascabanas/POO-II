@@ -1,47 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-public class Pessoa{
-    public int ID{
-        get; set;
-    }
-    public string Nome {
-        get; set;
-    }
-    public Pessoa(int id, string nome){
-        Id=id;
-        Nome= nome;
-    }
-    public override string Tostring() => $"[ID: {Id}] {Nome}";
-}
-// esse é o receptor  ele que insere deleta busca
-public class BancoPessoas{
-    private Dictionary<int, Pessoa> banco = new Dictionary<int, Pessoa>();
-    public void Inserir(Pessoa p){
-        banco[p.Id] = p;
-        Console.WriteLine($"-> Inserido: {p}")
-    }
-     public void Deletar(int id) {
-        if (banco.Remove(id))
-            Console.WriteLine($"-> Pessoa {id} deletada com sucesso.");
-        else
-            Console.WriteLine($"-> Erro: ID {id} não encontrado para deleção.");
-    }
-    public void ListarTodos() {
-        Console.WriteLine("\nLista de Pessoas no Banco");
-        foreach (var p in banco.Values) {
-            Console.WriteLine(p);
-        }
-        Console.WriteLine("\n");
-    }
-    public void Buscar(int id)  {
-        if (banco.TryGetValue(id, out Pessoa p))
-            Console.WriteLine($"-> Busca concluída: {p}");
-        else
-            Console.WriteLine($"-> Erro: Pessoa {id} não encontrada.");
-    }
-}
-
 public class Pessoa
 {
     public int Id
@@ -126,10 +85,6 @@ public interface ICommand
     void Execute (Object arg);
 }
 
-
-
-
-
 public class NewCommand : ICommand
 {
     private BancoPessoas db;
@@ -183,3 +138,44 @@ public class GetCommand : ICommand{
         db.Buscar(id);
     }
 }
+
+//Invoker
+public class Executor{
+    private BancoPessoas db = new BancoPessoas();
+    private Dictionary<string, ICommand> cmds = new Dictionary<string, ICommand>();
+    public Executor() {
+        // aq registra os comandos do pool
+        cmds["new"] = new NewCommand(db);
+        cmds["delete"] = new DeleteCommand(db);
+        cmds["all"] = new AllCommand(db);
+        cmds["get"] = new GetCommand(db);
+    }
+    public void Servico(string cmd, object arg = null) //mêtodo que recebe o pedido da main e aciona o comando correto
+    {
+        if (cmds.TryGetValue(cmd.ToLower(), out ICommand comando)){
+            comando.Execute(arg);
+        } 
+        else{
+            Console.WriteLine($"-> Comando '{cmd}' não reconhecido");
+        }
+    }
+}
+//CLIENTE
+class Program{
+    static void Main(string[] args){
+        Executor executor = new Executor();
+        Console.WriteLine("Iniciando operações via Main...\n");
+        //criando pessoas (passamos os argumentos como um array de objetos)
+        executor.Servico("new", new object[] { 1, "Hulk" });
+        executor.Servico("new", new object[] { 2, "HOmem de Ferro" });
+        executor.Servico("new", new object[] { 3, "Carlos" });
+        executor.Servico("all");
+        //buscando a pessoa de ID 2 
+        executor.Servico("get", 2);
+        //deletando a pessoa de ID 1
+        executor.Servico("delete", 1);
+        //listnado dnv pra ver se deletou
+        executor.Servico("all");
+    }
+}
+
