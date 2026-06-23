@@ -1,6 +1,47 @@
 using System;
 using System.Collections.Generic;
 
+public class Pessoa{
+    public int ID{
+        get; set;
+    }
+    public string Nome {
+        get; set;
+    }
+    public Pessoa(int id, string nome){
+        Id=id;
+        Nome= nome;
+    }
+    public override string Tostring() => $"[ID: {Id}] {Nome}";
+}
+// esse é o receptor  ele que insere deleta busca
+public class BancoPessoas{
+    private Dictionary<int, Pessoa> banco = new Dictionary<int, Pessoa>();
+    public void Inserir(Pessoa p){
+        banco[p.Id] = p;
+        Console.WriteLine($"-> Inserido: {p}")
+    }
+     public void Deletar(int id) {
+        if (banco.Remove(id))
+            Console.WriteLine($"-> Pessoa {id} deletada com sucesso.");
+        else
+            Console.WriteLine($"-> Erro: ID {id} não encontrado para deleção.");
+    }
+    public void ListarTodos() {
+        Console.WriteLine("\nLista de Pessoas no Banco");
+        foreach (var p in banco.Values) {
+            Console.WriteLine(p);
+        }
+        Console.WriteLine("\n");
+    }
+    public void Buscar(int id)  {
+        if (banco.TryGetValue(id, out Pessoa p))
+            Console.WriteLine($"-> Busca concluída: {p}");
+        else
+            Console.WriteLine($"-> Erro: Pessoa {id} não encontrada.");
+    }
+}
+
 public class Pessoa
 {
     public int Id
