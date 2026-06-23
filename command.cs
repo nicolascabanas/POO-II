@@ -118,7 +118,7 @@ public class DeleteCommand : ICommand
     }
 }
 
-public class Allcommand : ICommand{
+public class AllCommand : ICommand{
     private BancoPessoas db;
     public AllCommand(BancoPessoas db) => this.db = db;
 
