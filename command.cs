@@ -6,6 +6,10 @@ public interface ICommand
     void Execute (Object arg);
 }
 
+
+
+
+
 public class NewCommand : ICommand
 {
     private Database db;
@@ -36,5 +40,26 @@ public class DeleteCommand : ICommand
     {
         int id = (int)arg;
         db.Deletar(id);
+    }
+}
+
+public class Allcommand : ICommand{
+    private Database db;
+    public AllCommand(Database db) => this.db = db;
+
+    public void Execute(object arg)
+    {
+        db.ListarTodos();
+    }
+
+}
+
+public class GetCommand : ICommand{
+    private Database db;
+    public GetCommand(DataBase db) => this.db = db; 
+
+    public void Execute(object arg){
+        int id = (int)arg;
+        db.Buscar(id);
     }
 }
